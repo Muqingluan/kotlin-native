@@ -22,10 +22,10 @@ import org.gradle.api.Project
 import org.gradle.process.ExecResult
 import org.gradle.process.ExecSpec
 import org.gradle.util.ConfigureUtil
+import org.jetbrains.kotlin.konan.target.AppleConfigurables
 
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.target.PlatformManager
-import org.jetbrains.kotlin.konan.target.Xcode
 
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -124,6 +124,12 @@ fun runProcess(executor: (Action<in ExecSpec>) -> ExecResult?,
                executable: String, vararg args: String) = runProcess(executor, executable, args.toList())
 
 /**
+ * Returns Project's process executor
+ * @see Project.exec
+ */
+fun localExecutor(project: Project) = { a: Action<in ExecSpec> -> project.exec(a) }
+
+/**
  * Executes a given action with iPhone Simulator.
  *
  * The test target should be specified with -Ptest_target=ios_x64
@@ -134,7 +140,10 @@ fun runProcess(executor: (Action<in ExecSpec>) -> ExecResult?,
 private fun simulator(project: Project) : ExecutorService = object : ExecutorService {
 
     private val simctl by lazy {
-        val sdk = Xcode.current.iphonesimulatorSdk
+        val platform = project.platformManager().platform(KonanTarget.IOS_X64)
+        val configs = platform.configurables as AppleConfigurables
+
+        val sdk = configs.absoluteTargetSysRoot
         val out = ByteArrayOutputStream()
         val result = project.exec {
             it.commandLine("/usr/bin/xcrun", "--find", "simctl", "--sdk", sdk)
