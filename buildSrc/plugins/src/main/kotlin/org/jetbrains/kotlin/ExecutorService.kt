@@ -139,11 +139,22 @@ fun localExecutor(project: Project) = { a: Action<in ExecSpec> -> project.exec(a
  */
 private fun simulator(project: Project) : ExecutorService = object : ExecutorService {
 
+    init {
+        val out = ByteArrayOutputStream()
+        val result = project.exec {
+            it.commandLine("/usr/bin/xcrun", "simctl", "list")
+            it.standardOutput = out
+        }
+        println(out.toString("UTF-8").trim())
+        result.assertNormalExitValue()
+    }
+
     private val simctl by lazy {
         val platform = project.platformManager().platform(KonanTarget.IOS_X64)
         val configs = platform.configurables as AppleConfigurables
 
         val sdk = configs.absoluteTargetSysRoot
+        println("SDK PATH: $sdk")
         val out = ByteArrayOutputStream()
         val result = project.exec {
             it.commandLine("/usr/bin/xcrun", "--find", "simctl", "--sdk", sdk)
